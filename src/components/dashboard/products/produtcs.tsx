@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { yupResolver } from '@hookform/resolvers/yup';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -18,61 +19,103 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Select from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Unstable_Grid2';
+import { useForm } from 'react-hook-form';
+import * as yup from 'yup';
+
+const schema = yup.object().shape({
+  productName: yup.string().required('Este campo é campo obrigatório'),
+  mark: yup.string().required('Este campo é campo obrigatório'),
+  supplier: yup.string().required('Este campo é campo obrigatório'),
+  unity: yup.string().required('Este campo é campo obrigatório'),
+  quantity: yup
+    .number()
+    .typeError('Este campo é campo obrigatório')
+    .required('Este campo é campo obrigatório')
+    .min(1, 'Este campo não pode ser negativo'),
+  costPrice: yup
+    .number()
+    .typeError('Este campo é campo obrigatório')
+    .required('Este campo é campo obrigatório')
+    .min(0.01, 'Este campo não pode ser negativo'),
+  freigth: yup.number().typeError('Este campo é campo obrigatório').min(0, 'Este campo é campo obrigatório').optional(),
+  anotherExpenses: yup
+    .number()
+    .typeError('Este campo é campo obrigatório')
+    .min(0, 'Esse campo não pode ser negativo')
+    .optional(),
+  profitMargin: yup
+    .number()
+    .typeError('Este campo é campo obrigatório')
+    .min(0, 'Esse campo não pode ser negativo')
+    .optional(),
+});
+
+type ProductFormFields = {
+  productName: string;
+  mark: string;
+  supplier: string;
+  unity: string;
+  costPrice: number;
+  freigth?: number;
+  anotherExpenses?: number;
+  profitMargin?: number;
+  quantity: number;
+};
 
 export function ProductsForm(): React.JSX.Element {
-  const [costPrice, setCostPrice] = React.useState<number | undefined>(undefined);
-  const [frete, setFrete] = React.useState<number | undefined>(undefined);
-  const [outrasDespesas, setOutrasDespesas] = React.useState<number | undefined>(undefined);
-  const [profitMargin, setProfitMargin] = React.useState<number | undefined>(undefined);
-
-  const despesaAdmPercent = 44.33;
-
-  const [taxes, setTaxes] = React.useState({
-    icms: 0,
-    pis: 0,
-    cofins: 0,
-    others: 0,
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ProductFormFields>({
+    resolver: yupResolver(schema),
+    mode: 'onBlur',
+    defaultValues: {
+      productName: '',
+      mark: '',
+      supplier: '',
+      unity: '',
+      costPrice: 0,
+      freigth: 0,
+      anotherExpenses: 0,
+      profitMargin: 0,
+      quantity: 1,
+    },
   });
 
+  const [costPrice, setCostPrice] = React.useState<number | undefined>(undefined);
+  const [freigth, setFrete] = React.useState<number | undefined>(undefined);
+  const [anotherExpenses, setAnotherExpenses] = React.useState<number | undefined>(undefined);
+  const [profitMargin, setProfitMargin] = React.useState<number | undefined>(undefined);
+  const [taxes, setTaxes] = React.useState({ icms: 0, pis: 0, cofins: 0, others: 0 });
   const [image, setImage] = React.useState<string | null>(null);
 
-  const custoTotal = (costPrice || 0) + (frete || 0) + (outrasDespesas || 0);
-
+  const despesaAdmPercent = 44.33;
+  const custoTotal = (costPrice || 0) + (freigth || 0) + (anotherExpenses || 0);
   const marginFraction = parseFloat(((profitMargin || 0) / 100).toFixed(9));
   const admFraction = parseFloat((despesaAdmPercent / 100).toFixed(9));
-
-  const somaMarginAdm = Number(Number((marginFraction + admFraction).toFixed(9))).toFixed(9);
-
-  const fractionCustoNoPreco = Number(Number((1 - Number(somaMarginAdm)).toFixed(9)).toFixed(9));
-
+  const somaMarginAdm = Number((marginFraction + admFraction).toFixed(9));
+  const fractionCustoNoPreco = Number((1 - somaMarginAdm).toFixed(9));
   let precoVendaCalculado = 0;
   if (fractionCustoNoPreco > 0) {
     const rawPrice = custoTotal / fractionCustoNoPreco;
     precoVendaCalculado = parseFloat(rawPrice.toFixed(9));
   }
-
-  console.log(custoTotal, fractionCustoNoPreco);
-
   let valorMargem = parseFloat((precoVendaCalculado * marginFraction).toFixed(9));
   let valorDespesaAdm = parseFloat((precoVendaCalculado - custoTotal - valorMargem).toFixed(9));
-
   let markupMultiplicador = 0;
   if (custoTotal > 0) {
     markupMultiplicador = parseFloat((precoVendaCalculado / custoTotal).toFixed(9));
   }
-
   const precoMinimoVenda = precoVendaCalculado;
-
   const handleTaxChange = (name: string, value: number) => {
     setTaxes((prev) => ({
       ...prev,
       [name]: parseFloat(((precoVendaCalculado * value) / 100).toFixed(9)),
     }));
   };
-
   const totalTaxes = Object.values(taxes).reduce((acc, curr) => acc + curr, 0);
   const totalSalePrice = precoVendaCalculado + totalTaxes;
-
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -83,26 +126,30 @@ export function ProductsForm(): React.JSX.Element {
       reader.readAsDataURL(file);
     }
   };
-
   const custoPercent = precoMinimoVenda > 0 ? (custoTotal / precoMinimoVenda) * 100 : 0;
   const margemPercent = precoMinimoVenda > 0 ? (valorMargem / precoMinimoVenda) * 100 : 0;
   const despesaAdmPercentCalculated = precoMinimoVenda > 0 ? (valorDespesaAdm / precoMinimoVenda) * 100 : 0;
 
+  const onSubmit = (data: ProductFormFields) => {
+    alert('Produto salvo com sucesso!');
+  };
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-    >
+    <form onSubmit={handleSubmit(onSubmit)}>
       <Card sx={{ mb: 3 }}>
         <CardHeader title="Detalhes do Produto" />
         <Divider />
         <CardContent>
           <Grid container spacing={3}>
             <Grid xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Nome do Produto</InputLabel>
-                <OutlinedInput label="Nome do Produto" name="productName" />
+              <FormControl required fullWidth error={!!errors.productName}>
+                <InputLabel required>Nome do Produto</InputLabel>
+                <OutlinedInput required label="Nome do Produto" {...register('productName')} />
+                {errors.productName && (
+                  <Typography variant="caption" color="error">
+                    {errors.productName.message}
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
             <Grid xs={12}>
@@ -125,12 +172,7 @@ export function ProductsForm(): React.JSX.Element {
                 <label htmlFor="upload-image">
                   <IconButton component="span">
                     <Avatar
-                      sx={{
-                        width: 100,
-                        height: 100,
-                        bgcolor: 'action.active',
-                        cursor: 'pointer',
-                      }}
+                      sx={{ width: 100, height: 100, bgcolor: 'action.active', cursor: 'pointer' }}
                       src={image || undefined}
                     />
                   </IconButton>
@@ -163,18 +205,28 @@ export function ProductsForm(): React.JSX.Element {
               </FormControl>
             </Grid>
             <Grid md={4} xs={12}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth error={!!errors.mark}>
                 <InputLabel>Marca</InputLabel>
-                <OutlinedInput label="Marca" />
+                <OutlinedInput label="Marca" {...register('mark')} />
+                {errors.mark && (
+                  <Typography variant="caption" color="error">
+                    {errors.mark.message}
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
             <Grid md={4} xs={12}>
-              <FormControl fullWidth required>
+              <FormControl required fullWidth error={!!errors.supplier}>
                 <InputLabel>Fornecedor</InputLabel>
-                <Select label="Fornecedor">
-                  <MenuItem value="fornecedor1">Fornecedor 1</MenuItem>
-                  <MenuItem value="fornecedor2">Fornecedor 2</MenuItem>
+                <Select required label="Fornecedor" {...register('supplier')}>
+                  <MenuItem value="fornecedor1">supplier 1</MenuItem>
+                  <MenuItem value="fornecedor2">supplier 2</MenuItem>
                 </Select>
+                {errors.supplier && (
+                  <Typography variant="caption" color="error">
+                    {errors.supplier.message}
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
             <Grid md={4} xs={12}>
@@ -184,9 +236,9 @@ export function ProductsForm(): React.JSX.Element {
               </FormControl>
             </Grid>
             <Grid md={4} xs={12}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth error={!!errors.unity}>
                 <InputLabel>Unidade</InputLabel>
-                <Select label="Unidade">
+                <Select label="Unidade" {...register('unity')}>
                   <MenuItem value="Un">Un</MenuItem>
                   <MenuItem value="Kg">Kg</MenuItem>
                   <MenuItem value="g">g</MenuItem>
@@ -194,12 +246,17 @@ export function ProductsForm(): React.JSX.Element {
                   <MenuItem value="pct">Pct</MenuItem>
                   <MenuItem value="outro">Outro</MenuItem>
                 </Select>
+                {errors.unity && (
+                  <Typography variant="caption" color="error">
+                    {errors.unity.message}
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
             <Grid md={4} xs={12}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth error={!!errors.quantity}>
                 <InputLabel>Quantidade em Estoque</InputLabel>
-                <OutlinedInput type="number" label="Quantidade em Estoque" />
+                <OutlinedInput {...register('quantity')} type="number" label="Quantidade em Estoque" />
               </FormControl>
             </Grid>
             <Grid md={4} xs={12}>
@@ -235,65 +292,89 @@ export function ProductsForm(): React.JSX.Element {
         <CardContent>
           <Grid container spacing={3}>
             <Grid md={4} xs={12}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth error={!!errors.costPrice}>
                 <InputLabel>Custo de Aquisição</InputLabel>
                 <OutlinedInput
                   type="number"
                   label="Custo de Aquisição"
+                  {...register('costPrice')}
                   value={costPrice ?? ''}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    setCostPrice(value === '' ? undefined : Number(value));
+                    const val = e.target.value;
+                    setCostPrice(val === '' ? undefined : Number(val));
                   }}
                   startAdornment={<InputAdornment position="start">R$</InputAdornment>}
                 />
+                {errors.costPrice && (
+                  <Typography variant="caption" color="error">
+                    {errors.costPrice.message}
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
             <Grid md={4} xs={12}>
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!errors.freigth}>
                 <InputLabel>Frete</InputLabel>
                 <OutlinedInput
                   type="number"
-                  label="Frete"
-                  value={frete ?? ''}
+                  label="freigth"
+                  {...register('freigth')}
+                  value={freigth ?? ''}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    setFrete(value === '' ? undefined : Number(value));
+                    const val = e.target.value;
+                    setFrete(val === '' ? undefined : Number(val));
                   }}
                   startAdornment={<InputAdornment position="start">R$</InputAdornment>}
                 />
+                {errors.freigth && (
+                  <Typography variant="caption" color="error">
+                    {errors.freigth.message}
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
             <Grid md={4} xs={12}>
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!errors.anotherExpenses}>
                 <InputLabel>Outras Despesas</InputLabel>
                 <OutlinedInput
                   type="number"
                   label="Outras Despesas"
-                  value={outrasDespesas ?? ''}
+                  {...register('anotherExpenses')}
+                  value={anotherExpenses ?? ''}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    setOutrasDespesas(value === '' ? undefined : Number(value));
+                    const val = e.target.value;
+                    setAnotherExpenses(val === '' ? undefined : Number(val));
                   }}
                   startAdornment={<InputAdornment position="start">R$</InputAdornment>}
                 />
+                {errors.anotherExpenses && (
+                  <Typography variant="caption" color="error">
+                    {errors.anotherExpenses.message}
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
           </Grid>
           <Grid mt={2} container spacing={3}>
             <Grid md={4} xs={12}>
-              <FormControl fullWidth required>
+              <FormControl fullWidth error={!!errors.profitMargin}>
                 <InputLabel>Margem de Lucro (%)</InputLabel>
                 <OutlinedInput
                   type="number"
                   label="Margem de Lucro (%)"
+                  {...register('profitMargin')}
                   value={profitMargin ?? ''}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    setProfitMargin(value === '' ? undefined : Number(value));
+                    const val = e.target.value;
+                    setProfitMargin(val === '' ? undefined : Number(val));
                   }}
                   endAdornment={<InputAdornment position="end">%</InputAdornment>}
                 />
+                {errors.profitMargin && (
+                  <Typography variant="caption" color="error">
+                    {errors.profitMargin.message}
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
           </Grid>
