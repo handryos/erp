@@ -7,7 +7,8 @@ export const paths = {
     products: '/dashboard/products',
     expenses: '/dashboard/expenses',
     sales: '/dashboard/sales',
-    services: "dashboard/ "
+    company: '/dashboard/company',
+    services: 'dashboard/ ',
   },
   errors: { notFound: '/errors/not-found' },
 } as const;

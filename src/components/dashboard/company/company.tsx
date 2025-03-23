@@ -7,10 +7,6 @@ import {
   CardActions,
   CardContent,
   CardHeader,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
   FormControl,
   Grid,
@@ -23,6 +19,8 @@ import {
 } from '@mui/material';
 import { useForm } from 'react-hook-form';
 
+import CurrencyInput from '@/components/core/currency-input';
+
 type Regime = 'Simples' | 'Lucro Real' | 'Lucro Presumido';
 
 interface CompanyFormData {
@@ -33,15 +31,6 @@ interface CompanyFormData {
 }
 
 interface DespesasState {
-  agua: number;
-  luz: number;
-  internet: number;
-  aluguel: number;
-  folhaPagamento: number;
-  proLabore: number;
-  limpeza: number;
-  outrasDespesasAdm: number;
-  taxasCartao: number;
   icms: number;
   iss: number;
   pis: number;
@@ -49,132 +38,8 @@ interface DespesasState {
   irpj: number;
   irpjAdicional: number;
   csll: number;
-  [key: string]: number;
 }
 
-function TaxasCartaoModal({
-  open,
-  onClose,
-  onSave,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onSave: (taxas: number) => void;
-}) {
-  const [values, setValues] = React.useState({
-    faturamento: 0,
-    percentualCredito: 0,
-    taxaCredito: 0,
-    percentualDebito: 0,
-    taxaDebito: 0,
-  });
-
-  const handleNumberInput = (value: string, field: string) => {
-    const sanitized = value.replace(/[^0-9]/g, '');
-    const numericValue = sanitized === '' ? 0 : Number(sanitized);
-    setValues((prev) => ({ ...prev, [field]: numericValue }));
-  };
-
-  const custoEstimado = React.useMemo(() => {
-    const credito = ((values.faturamento * values.percentualCredito) / 100) * (values.taxaCredito / 100);
-    const debito = ((values.faturamento * values.percentualDebito) / 100) * (values.taxaDebito / 100);
-    return credito + debito;
-  }, [values]);
-
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Taxas de Cartão</DialogTitle>
-      <DialogContent dividers>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Faturamento Estimado"
-              value={values.faturamento || ''}
-              onChange={(e) => handleNumberInput(e.target.value, 'faturamento')}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-                inputMode: 'numeric',
-              }}
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }}>
-              <Typography variant="subtitle1">Taxas de Crédito</Typography>
-            </Divider>
-          </Grid>
-
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              label="% de Vendas no Crédito"
-              value={values.percentualCredito || ''}
-              onChange={(e) => handleNumberInput(e.target.value, 'percentualCredito')}
-              InputProps={{
-                endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                inputMode: 'numeric',
-              }}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              label="Taxa de Crédito"
-              value={values.taxaCredito || ''}
-              onChange={(e) => handleNumberInput(e.target.value, 'taxaCredito')}
-              InputProps={{
-                endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                inputMode: 'numeric',
-              }}
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }}>
-              <Typography variant="subtitle1">Taxas de Débito</Typography>
-            </Divider>
-          </Grid>
-
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              label="% de Vendas no Débito"
-              value={values.percentualDebito || ''}
-              onChange={(e) => handleNumberInput(e.target.value, 'percentualDebito')}
-              InputProps={{
-                endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                inputMode: 'numeric',
-              }}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              label="Taxa de Débito"
-              value={values.taxaDebito || ''}
-              onChange={(e) => handleNumberInput(e.target.value, 'taxaDebito')}
-              InputProps={{
-                endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                inputMode: 'numeric',
-              }}
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography variant="body1" sx={{ mt: 2 }}>
-              Custo Total Estimado: R$ {custoEstimado.toLocaleString('pt-BR')}
-            </Typography>
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => onSave(custoEstimado)}>Salvar</Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
 export default function CompanyFullForm() {
   const { register, handleSubmit, watch, setValue } = useForm<CompanyFormData>({
     defaultValues: {
@@ -187,16 +52,8 @@ export default function CompanyFullForm() {
 
   const regimeTributacao = watch('regimeTributacao');
   const faturamentoMensal = watch('faturamentoMensal');
+
   const [despesas, setDespesas] = React.useState<DespesasState>({
-    agua: 0,
-    luz: 0,
-    internet: 0,
-    aluguel: 0,
-    folhaPagamento: 0,
-    proLabore: 0,
-    limpeza: 0,
-    outrasDespesasAdm: 0,
-    taxasCartao: 0,
     icms: 0,
     iss: 0,
     pis: 0,
@@ -205,7 +62,6 @@ export default function CompanyFullForm() {
     irpjAdicional: 0,
     csll: 0,
   });
-  const [openTaxas, setOpenTaxas] = React.useState(false);
 
   const calcularPercentual = (valor: number) => {
     return faturamentoMensal > 0 ? (valor / faturamentoMensal) * 100 : 0;
@@ -223,25 +79,13 @@ export default function CompanyFullForm() {
     );
   }, [despesas]);
 
-  const totalDespesasOperacionais = React.useMemo(() => {
-    return (
-      despesas.agua +
-      despesas.luz +
-      despesas.internet +
-      despesas.aluguel +
-      despesas.folhaPagamento +
-      despesas.proLabore +
-      despesas.limpeza +
-      despesas.outrasDespesasAdm +
-      despesas.taxasCartao
-    );
-  }, [despesas]);
-
+  // Despesas Operacionais fixas (Despesas Administrativas)
+  const totalDespesasOperacionais = 1000;
   const totalDespesas = totalDespesasOperacionais + despesasImpostos;
-
   const relacaoDespesas = calcularPercentual(totalDespesas);
   const resultadoLiquido = faturamentoMensal - totalDespesas;
 
+  // Cálculos para o regime "Lucro Presumido"
   const presuncaoLucro = React.useMemo(() => {
     return regimeTributacao === 'Lucro Presumido' ? faturamentoMensal * 0.08 : 0;
   }, [faturamentoMensal, regimeTributacao]);
@@ -250,23 +94,16 @@ export default function CompanyFullForm() {
     return presuncaoLucro * 0.15;
   }, [presuncaoLucro]);
 
-  const handleNumberInput = (value: string, field: string) => {
-    const sanitized = value.replace(/[^0-9]/g, '');
-    const numericValue = sanitized === '' ? 0 : Number(sanitized);
-    setDespesas((prev) => ({ ...prev, [field]: numericValue }));
-  };
+  // Determina se o IRPJ Adicional deve ser pago: se a presunção for maior que R$20.000,00
+  const irpjAdicionalPagar = presuncaoLucro > 20000 ? 'Sim' : 'Não';
 
-  const renderCampoDespesa = (label: string, campo: keyof DespesasState) => (
-    <Grid item xs={12} md={4}>
-      <TextField
-        fullWidth
+  // Função para renderizar os campos de imposto usando o componente CurrencyInput
+  const renderCampoImposto = (label: string, campo: keyof DespesasState) => (
+    <Grid item xs={12} md={4} key={campo}>
+      <CurrencyInput
         label={label}
-        value={despesas[campo] || ''}
-        onChange={(e) => handleNumberInput(e.target.value, String(campo))}
-        InputProps={{
-          startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-          inputMode: 'numeric',
-        }}
+        value={despesas[campo]}
+        onChange={(num) => setDespesas((prev) => ({ ...prev, [campo]: num }))}
       />
       <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
         {calcularPercentual(despesas[campo]).toLocaleString('pt-BR', {
@@ -296,118 +133,134 @@ export default function CompanyFullForm() {
                 <Select label="Regime Tributário" value={regimeTributacao} {...register('regimeTributacao')}>
                   <MenuItem value="Lucro Real">Lucro Real</MenuItem>
                   <MenuItem value="Lucro Presumido">Lucro Presumido</MenuItem>
+                  <MenuItem value="Simples">Simples</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
+              <CurrencyInput
                 label="Faturamento Mensal"
-                value={faturamentoMensal || ''}
-                onChange={(e) => setValue('faturamentoMensal', Number(e.target.value.replace(/[^0-9]/g, '')))}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-                  inputMode: 'numeric',
-                }}
+                value={faturamentoMensal}
+                onChange={(num) => setValue('faturamentoMensal', num)}
               />
             </Grid>
           </Grid>
         </CardContent>
       </Card>
 
-      <Card sx={{ mb: 4 }}>
-        <CardHeader title="Despesas Operacionais" />
-        <CardContent>
-          <Grid container spacing={3}>
-            {renderCampoDespesa('Água', 'agua')}
-            {renderCampoDespesa('Luz', 'luz')}
-            {renderCampoDespesa('Internet', 'internet')}
-            {renderCampoDespesa('Aluguel', 'aluguel')}
-            {renderCampoDespesa('Folha de Pagamento', 'folhaPagamento')}
-            {renderCampoDespesa('Pró-labore', 'proLabore')}
-            {renderCampoDespesa('Limpeza', 'limpeza')}
-            {renderCampoDespesa('Outras Despesas Adm', 'outrasDespesasAdm')}
-
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Taxas de Cartão"
-                value={despesas.taxasCartao || ''}
-                InputProps={{
-                  readOnly: true,
-                  startAdornment: <InputAdornment position="start">R$</InputAdornment>,
-                }}
-              />
-              <Button fullWidth variant="outlined" sx={{ mt: 1 }} onClick={() => setOpenTaxas(true)}>
-                Calcular Taxas
-              </Button>
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 4 }} />
-
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6">
-                Total Despesas Operacionais: R$ {totalDespesasOperacionais.toLocaleString('pt-BR')}
-              </Typography>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      <Card sx={{ mb: 4 }}>
-        <CardHeader title="Impostos" />
-        <CardContent>
-          <Grid container spacing={3}>
-            {renderCampoDespesa('ICMS', 'icms')}
-            {renderCampoDespesa('ISS', 'iss')}
-            {renderCampoDespesa('PIS', 'pis')}
-            {renderCampoDespesa('COFINS', 'cofins')}
-            {renderCampoDespesa('IRPJ', 'irpj')}
-            {renderCampoDespesa('IRPJ Adicional', 'irpjAdicional')}
-            {renderCampoDespesa('CSLL', 'csll')}
-          </Grid>
-
-          <Divider sx={{ my: 4 }} />
-
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6">Total Impostos: R$ {despesasImpostos.toLocaleString('pt-BR')}</Typography>
-              <Typography variant="body2">
-                {regimeTributacao === 'Lucro Presumido'
-                  ? 'Despesas com Impostos (Presumido)'
-                  : 'Despesas com Impostos (Real)'}
-                : {calcularPercentual(despesasImpostos).toFixed(2)}%
-              </Typography>
+      {regimeTributacao !== 'Simples' && (
+        <Card sx={{ mb: 4 }}>
+          <CardHeader title="Impostos" />
+          <CardContent>
+            <Grid container spacing={3}>
+              {renderCampoImposto('ICMS', 'icms')}
+              {renderCampoImposto('ISS', 'iss')}
+              {renderCampoImposto('PIS', 'pis')}
+              {renderCampoImposto('COFINS', 'cofins')}
+              {renderCampoImposto('IRPJ', 'irpj')}
+              {renderCampoImposto('IRPJ Adicional', 'irpjAdicional')}
+              {renderCampoImposto('CSLL', 'csll')}
             </Grid>
 
-            {regimeTributacao === 'Lucro Presumido' && (
+            <Divider sx={{ my: 4 }} />
+
+            <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
+                <Typography variant="h6">
+                  Total Impostos:{' '}
+                  {despesasImpostos.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </Typography>
                 <Typography variant="body2">
-                  Presunção de Lucro (8%): R$ {presuncaoLucro.toLocaleString('pt-BR')}
-                  <br />
-                  IRPJ Calculado (15%): R$ {irpjPresumido.toLocaleString('pt-BR')}
+                  {regimeTributacao === 'Lucro Presumido'
+                    ? 'Despesas com Impostos (Presumido)'
+                    : 'Despesas com Impostos (Real)'}
+                  : {calcularPercentual(despesasImpostos).toFixed(2)}%
                 </Typography>
               </Grid>
-            )}
-          </Grid>
-        </CardContent>
-      </Card>
+
+              {regimeTributacao === 'Lucro Presumido' && (
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body2">
+                    Presunção (8%):{' '}
+                    {presuncaoLucro.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                    <br />
+                    IRPJ Calculado (15%):{' '}
+                    {irpjPresumido.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                    <br />
+                    IRPJ Adicional a pagar: {irpjAdicionalPagar}
+                  </Typography>
+                </Grid>
+              )}
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
 
       <Card sx={{ mb: 4 }}>
         <CardHeader title="Resumo Financeiro" />
         <CardContent>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6">Total Geral de Despesas: R$ {totalDespesas.toLocaleString('pt-BR')}</Typography>
+            <Grid item xs={12} md={4}>
+              <Typography variant="h6">
+                Total Geral de Despesas:{' '}
+                {totalDespesas.toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </Typography>
               <Typography variant="body2">Relação Despesas/Faturamento: {relacaoDespesas.toFixed(2)}%</Typography>
             </Grid>
 
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6">Resultado Líquido: R$ {resultadoLiquido.toLocaleString('pt-BR')}</Typography>
+            <Grid item xs={12} md={4}>
+              <Typography variant="h6">
+                Total de Despesas Operacionais:{' '}
+                {totalDespesasOperacionais.toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </Typography>
               <Typography variant="body2">
-                Faturamento Mensal: R$ {faturamentoMensal.toLocaleString('pt-BR')}
+                Porcentagem sobre Total Geral: {calcularPercentual(totalDespesasOperacionais).toFixed(2)}%
+              </Typography>
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <Typography variant="h6">
+                Resultado Líquido:{' '}
+                {resultadoLiquido.toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </Typography>
+              <Typography variant="body2">
+                Faturamento Mensal:{' '}
+                {faturamentoMensal.toLocaleString('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </Typography>
             </Grid>
           </Grid>
@@ -419,14 +272,6 @@ export default function CompanyFullForm() {
           Salvar
         </Button>
       </CardActions>
-
-      <TaxasCartaoModal
-        open={openTaxas}
-        onClose={() => setOpenTaxas(false)}
-        onSave={(valor) => {
-          setDespesas((prev) => ({ ...prev, taxasCartao: valor })), setOpenTaxas(false);
-        }}
-      />
     </form>
   );
 }

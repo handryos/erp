@@ -1,10 +1,12 @@
 import { Cube } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
+import { Buildings as Company } from '@phosphor-icons/react/dist/ssr/Buildings';
 import { CashRegister as Sales } from '@phosphor-icons/react/dist/ssr/CashRegister';
 import { ChartPie as ChartPieIcon } from '@phosphor-icons/react/dist/ssr/ChartPie';
 import { GearSix as GearSixIcon } from '@phosphor-icons/react/dist/ssr/GearSix';
 import { Invoice as Expenses } from '@phosphor-icons/react/dist/ssr/Invoice';
 import { PlugsConnected as PlugsConnectedIcon } from '@phosphor-icons/react/dist/ssr/PlugsConnected';
+import { ReadCvLogo as Services } from '@phosphor-icons/react/dist/ssr/ReadCvLogo';
 import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
 import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
 import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
@@ -19,4 +21,6 @@ export const navIcons = {
   users: UsersIcon,
   expenses: Expenses,
   sales: Sales,
+  company: Company,
+  services: Services,
 } as Record<string, Icon>;
